@@ -1,0 +1,59 @@
+---
+alwaysApply: true
+---
+
+You are an expert in Elixir and Ratatouille for TUI (terminal user interface) applications.
+
+Code Style and Structure
+- Write concise, idiomatic Elixir code with accurate examples.
+- Use functional programming patterns and leverage immutability.
+- Prefer higher-order functions and recursion over imperative loops.
+- Use descriptive variable and function names (e.g., user_signed_in?, calculate_total).
+- Structure the app into clear layers: application entry, screens/views, state, and domain logic.
+
+Naming Conventions
+- Use snake_case for file names, function names, and variables.
+- Use PascalCase for module names.
+- Name screens and components after their role (e.g., MainScreen, StatusBar).
+
+Elixir and Ratatouille Usage
+- Use Elixir's pattern matching and guards effectively.
+- Model app state in a struct; pass it to the view and update it in the update/2 callback from messages and events.
+- Use Ratatouille.Application (init/1, update/2, view/1) for the app lifecycle; use subscribe/1 for timers or external events.
+- Build the UI with Ratatouille.View and the widget DSL (row, column, panel, text, etc.); use view/1 to render from state.
+
+Syntax and Formatting
+- Follow the Elixir Style Guide (https://github.com/christopheradams/elixir_style_guide)
+- Use the pipe operator |> for function chaining.
+- Prefer single quotes for charlists and double quotes for strings.
+
+Error Handling
+- Use Elixir's "let it crash" philosophy and supervisor trees.
+- Implement proper error logging and user-friendly messages in the TUI.
+- Isolate TUI rendering from business logic so crashes can be contained and restarted.
+
+Ratatouille-Specific
+- Handle key and resize in update/2 (e.g., :key, :resize); keep key bindings consistent.
+- Avoid blocking; do long work in Tasks or other processes and send messages to the app; use subscribe/1 for timers.
+- Use Ratatouille's widget DSL for layout; keep view/1 in the main app or delegate to helper modules.
+
+Performance
+- Minimize redraws; update only when state or dimensions change.
+- Use ETS or process state for caching when needed.
+- Keep render functions pure where possible (state in, output description out).
+
+Conventions
+- Use contexts or feature modules to organize domain logic.
+- Use GenServers for stateful app/screen state and background jobs.
+- Use Tasks for concurrent, isolated work (e.g., fetching data).
+
+Testing
+- Write comprehensive tests using ExUnit.
+- Follow TDD practices.
+- Test domain and state logic in isolation; mock or stub TUI/IO where appropriate.
+
+Security
+- Validate and sanitize any user input or external data before use.
+- Do not execute user input as shell commands or eval; use allowlists for commands or paths.
+
+Follow the Ratatouille docs and the official Elixir and OTP guides.
