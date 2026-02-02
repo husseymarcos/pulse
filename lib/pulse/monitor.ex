@@ -7,12 +7,11 @@ defmodule Pulse.Monitor do
 
   ## Example
 
-      service = %Pulse.Service{id: :api, name: "API", url: "https://api.example.com/health"}
+      service = %Pulse.Service{name: "API", url: "https://api.example.com/health"}
       :ok = Pulse.Monitor.add_service(service)
-      Pulse.Monitor.list_services()
-      #=> [%{service: service, pid: #PID<...>, latency_ms: nil}]
-      Pulse.Monitor.check(:api)
-      Pulse.Monitor.remove_service(:api)
+      [entry] = Pulse.Monitor.list_services()
+      Pulse.Monitor.check(entry.service.id)
+      Pulse.Monitor.remove_service(entry.service.id)
 
   """
 
@@ -26,16 +25,16 @@ defmodule Pulse.Monitor do
     GenServer.call(__MODULE__, {:add_service, service})
   end
 
-  def remove_service(service_id) do
-    GenServer.call(__MODULE__, {:remove_service, service_id})
+  def remove_service(id) do
+    GenServer.call(__MODULE__, {:remove_service, id})
   end
 
   def list_services do
     GenServer.call(__MODULE__, :list_services)
   end
 
-  def check(service_id) do
-    case get_pid(service_id) do
+  def check(id) do
+    case get_pid(id) do
       nil ->
         :not_found
 
@@ -45,8 +44,8 @@ defmodule Pulse.Monitor do
     end
   end
 
-  defp get_pid(service_id) do
-    GenServer.call(__MODULE__, {:get_pid, service_id})
+  defp get_pid(id) do
+    GenServer.call(__MODULE__, {:get_pid, id})
   end
 
   @impl true
@@ -54,12 +53,14 @@ defmodule Pulse.Monitor do
 
   @impl true
   def handle_call({:add_service, service}, _from, %{workers: workers} = state) do
-    if Map.has_key?(workers, service.id) do
+    if url_taken?(workers, service.url) do
       {:reply, {:error, :already_exists}, state}
     else
-      case start_worker(service) do
+      id = UUID.uuid4()
+      service_with_id = %{service | id: id}
+      case start_worker(service_with_id) do
         {:ok, pid} ->
-          {:reply, :ok, %{state | workers: Map.put(workers, service.id, {service, pid})}}
+          {:reply, :ok, %{state | workers: Map.put(workers, id, {service_with_id, pid})}}
 
         {:error, reason} ->
           {:reply, {:error, reason}, state}
@@ -68,8 +69,8 @@ defmodule Pulse.Monitor do
   end
 
   @impl true
-  def handle_call({:remove_service, service_id}, _from, %{workers: workers} = state) do
-    case Map.pop(workers, service_id) do
+  def handle_call({:remove_service, id}, _from, %{workers: workers} = state) do
+    case Map.pop(workers, id) do
       {nil, _} ->
         {:reply, {:error, :not_found}, state}
 
@@ -90,13 +91,17 @@ defmodule Pulse.Monitor do
   end
 
   @impl true
-  def handle_call({:get_pid, service_id}, _from, %{workers: workers} = state) do
-    pid = workers |> Map.get(service_id) |> pid_from_entry()
+  def handle_call({:get_pid, id}, _from, %{workers: workers} = state) do
+    pid = workers |> Map.get(id) |> pid_from_entry()
     {:reply, pid, state}
   end
 
   defp pid_from_entry({_service, p}), do: p
   defp pid_from_entry(nil), do: nil
+
+  defp url_taken?(workers, url) do
+    Enum.any?(workers, fn {_id, {service, _pid}} -> service.url == url end)
+  end
 
   defp start_worker(service) do
     spec = {Pulse.Monitor.Worker, [service: service, name: nil]}

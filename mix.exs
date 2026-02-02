@@ -24,7 +24,9 @@ defmodule Pulse.MixProject do
     [
       {:castore, "~> 1.0"},
       {:mint, "~> 1.7"},
-      {:statistex, "~> 1.1"}
+      {:statistex, "~> 1.1"},
+      {:typedstruct, "~> 0.5"},
+      {:uuid, "~> 1.1"}
     ]
   end
 end
