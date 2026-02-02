@@ -10,10 +10,11 @@ import (
 )
 
 type serviceEntry struct {
-	ID        int   `json:"id"`
+	ID        int    `json:"id"`
 	Name      string `json:"name"`
 	URL       string `json:"url"`
 	LatencyMs *int   `json:"latency_ms"`
+	Status    string `json:"status"`
 }
 
 type model struct {

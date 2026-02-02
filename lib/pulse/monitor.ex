@@ -94,7 +94,8 @@ defmodule Pulse.Monitor do
         %Entry{
           service: service,
           pid: pid,
-          latency_ms: Pulse.Monitor.Worker.get_latency(pid)
+          latency_ms: Pulse.Monitor.Worker.get_latency(pid),
+          status: Pulse.Monitor.Worker.get_status(pid)
         }
       end)
 

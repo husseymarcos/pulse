@@ -8,5 +8,6 @@ defmodule Pulse.Monitor.Entry do
     field :service, Pulse.Service.t()
     field :pid, pid()
     field :latency_ms, integer() | nil, default: nil
+    field :status, :ok | :error, default: :error
   end
 end

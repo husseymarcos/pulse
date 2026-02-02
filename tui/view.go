@@ -42,14 +42,20 @@ func render(m model) string {
 	if len(m.entries) == 0 && m.err == nil {
 		body += "No services. Press a to add one.\n"
 	} else {
-		header := lipgloss.NewStyle().Bold(true).Render("ID   Name              URL                              Latency")
+		errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
+		okStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
+		header := lipgloss.NewStyle().Bold(true).Render("ID   Name              Status   URL                         Latency")
 		body += header + "\n"
 		for _, e := range m.entries {
 			lat := "—"
 			if e.LatencyMs != nil {
 				lat = fmt.Sprintf("%d ms", *e.LatencyMs)
 			}
-			body += fmt.Sprintf("%-4d %-17s %-32s %s\n", e.ID, truncate(e.Name, 16), truncate(e.URL, 31), lat)
+			statusStr := errorStyle.Render("ERROR")
+			if e.Status == "ok" {
+				statusStr = okStyle.Render("OK")
+			}
+			body += fmt.Sprintf("%-4d %-16s %s %-28s %s\n", e.ID, truncate(e.Name, 16), statusStr, truncate(e.URL, 28), lat)
 		}
 	}
 

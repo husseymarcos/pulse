@@ -8,5 +8,6 @@ defmodule Pulse.Monitor.Worker.State do
     field :request_ref, reference() | nil, default: nil
     field :start_time, integer() | nil, default: nil
     field :latency_ms, integer() | nil, default: nil
+    field :last_status, :ok | :error, default: :error
   end
 end

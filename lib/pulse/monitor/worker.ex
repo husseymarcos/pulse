@@ -26,6 +26,10 @@ defmodule Pulse.Monitor.Worker do
     GenServer.call(pid, :get_latency)
   end
 
+  def get_status(pid \\ __MODULE__) do
+    GenServer.call(pid, :get_status)
+  end
+
   @impl true
   def init(service) do
     state = %State{
@@ -36,23 +40,34 @@ defmodule Pulse.Monitor.Worker do
       latency_ms: nil
     }
 
+    Process.send_after(self(), :run_check, 500)
+
     {:ok, state}
   end
 
   @impl true
-  def handle_cast(:check, %State{service: service} = state) do
-    case Pulse.Monitor.HTTP.connect_get(service.url) do
-      {:ok, conn, request_ref, start_time} ->
-        {:noreply, %{state | conn: conn, request_ref: request_ref, start_time: start_time}}
+  def handle_cast(:check, %State{service: service, conn: conn} = state) do
+    if conn != nil do
+      {:noreply, state}
+    else
+      case Pulse.Monitor.HTTP.connect_get(service.url) do
+        {:ok, conn, request_ref, start_time} ->
+          {:noreply, %{state | conn: conn, request_ref: request_ref, start_time: start_time}}
 
-      {:error, _} ->
-        {:noreply, state}
+        {:error, _} ->
+          {:noreply, state}
+      end
     end
   end
 
   @impl true
   def handle_call(:get_latency, _from, %State{latency_ms: latency_ms} = state) do
     {:reply, latency_ms, state}
+  end
+
+  @impl true
+  def handle_call(:get_status, _from, %State{last_status: last_status} = state) do
+    {:reply, last_status, state}
   end
 
   @impl true
@@ -69,7 +84,21 @@ defmodule Pulse.Monitor.Worker do
 
       {:error, conn, _reason, _responses} ->
         _ = Mint.HTTP.close(conn)
-        {:noreply, %{state | conn: nil, request_ref: nil, start_time: nil}}
+        {:noreply, %{state | conn: nil, request_ref: nil, start_time: nil, last_status: :error}}
+    end
+  end
+
+  def handle_info(:run_check, %State{service: service, conn: conn} = state) do
+    if conn != nil do
+      {:noreply, state}
+    else
+      case Pulse.Monitor.HTTP.connect_get(service.url) do
+        {:ok, conn, request_ref, start_time} ->
+          {:noreply, %{state | conn: conn, request_ref: request_ref, start_time: start_time}}
+
+        {:error, _} ->
+          {:noreply, state}
+      end
     end
   end
 

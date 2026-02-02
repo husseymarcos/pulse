@@ -25,12 +25,13 @@ defmodule Pulse.Web do
     entries = Pulse.Monitor.list_services()
 
     body =
-      Enum.map(entries, fn %Pulse.Monitor.Entry{service: s, latency_ms: latency_ms} ->
+      Enum.map(entries, fn %Pulse.Monitor.Entry{service: s, latency_ms: latency_ms, status: status} ->
         %{
           id: s.id,
           name: s.name,
           url: s.url,
-          latency_ms: latency_ms
+          latency_ms: latency_ms,
+          status: (status == :ok && "ok") || "error"
         }
       end)
       |> Jason.encode!()
@@ -56,14 +57,19 @@ defmodule Pulse.Web do
               entries = Pulse.Monitor.list_services()
               created = Enum.find(entries, fn %Pulse.Monitor.Entry{service: s} -> s.url == url end)
 
+              if created do
+                Pulse.Monitor.check(created.service.id)
+              end
+
               body =
                 case created do
-                  %Pulse.Monitor.Entry{service: s, latency_ms: latency_ms} ->
+                  %Pulse.Monitor.Entry{service: s, latency_ms: latency_ms, status: status} ->
                     Jason.encode!(%{
                       id: s.id,
                       name: s.name,
                       url: s.url,
-                      latency_ms: latency_ms
+                      latency_ms: latency_ms,
+                      status: (status == :ok && "ok") || "error"
                     })
 
                   nil ->
