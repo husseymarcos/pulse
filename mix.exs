@@ -22,8 +22,11 @@ defmodule Pulse.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:bandit, "~> 1.0"},
       {:castore, "~> 1.0"},
+      {:jason, "~> 1.4"},
       {:mint, "~> 1.7"},
+      {:plug, "~> 1.19"},
       {:statistex, "~> 1.1"},
       {:typedstruct, "~> 0.5"}
     ]
