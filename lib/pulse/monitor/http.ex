@@ -16,6 +16,7 @@ defmodule Pulse.Monitor.HTTP do
     opts = transport_opts(scheme)
 
     start_time = System.monotonic_time(:millisecond)
+
     with {:ok, conn} <- Mint.HTTP.connect(scheme, host, port, opts),
          {:ok, conn, request_ref} <- Mint.HTTP.request(conn, "GET", path, [], nil) do
       {:ok, conn, request_ref, start_time}

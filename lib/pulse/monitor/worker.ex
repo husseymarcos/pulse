@@ -33,6 +33,7 @@ defmodule Pulse.Monitor.Worker do
       start_time: nil,
       latency_ms: nil
     }
+
     {:ok, state}
   end
 
@@ -40,8 +41,7 @@ defmodule Pulse.Monitor.Worker do
   def handle_cast(:check, %{service: service} = state) do
     case Pulse.Monitor.HTTP.connect_get(service.url) do
       {:ok, conn, request_ref, start_time} ->
-        {:noreply,
-         %{state | conn: conn, request_ref: request_ref, start_time: start_time}}
+        {:noreply, %{state | conn: conn, request_ref: request_ref, start_time: start_time}}
 
       {:error, _} ->
         {:noreply, state}
@@ -54,7 +54,10 @@ defmodule Pulse.Monitor.Worker do
   end
 
   @impl true
-  def handle_info(message, %{conn: conn, request_ref: request_ref, start_time: start_time} = state)
+  def handle_info(
+        message,
+        %{conn: conn, request_ref: request_ref, start_time: start_time} = state
+      )
       when not is_nil(conn) and Mint.HTTP.is_connection_message(conn, message) do
     case Mint.HTTP.stream(conn, message) do
       {:ok, conn, responses} ->

@@ -9,8 +9,13 @@ defmodule Pulse.Monitor.Response do
   def apply(state, responses, request_ref, start_time) do
     if done?(responses, request_ref) do
       latency_ms = System.monotonic_time(:millisecond) - start_time
-      Logger.info("Pulse.Monitor.Worker #{state.service.name}: GET #{state.service.url} took #{latency_ms}ms")
+
+      Logger.info(
+        "Pulse.Monitor.Worker #{state.service.name}: GET #{state.service.url} took #{latency_ms}ms"
+      )
+
       _ = Mint.HTTP.close(state.conn)
+
       %{
         state
         | conn: nil,

@@ -36,8 +36,12 @@ defmodule Pulse.Monitor do
 
   def check(service_id) do
     case get_pid(service_id) do
-      nil -> :not_found
-      pid -> Pulse.Monitor.Worker.check(pid); :ok
+      nil ->
+        :not_found
+
+      pid ->
+        Pulse.Monitor.Worker.check(pid)
+        :ok
     end
   end
 
@@ -96,6 +100,7 @@ defmodule Pulse.Monitor do
 
   defp start_worker(service) do
     spec = {Pulse.Monitor.Worker, [service: service, name: nil]}
+
     case DynamicSupervisor.start_child(Pulse.Monitor.Supervisor, spec) do
       {:ok, pid} -> {:ok, pid}
       {:ok, pid, _} -> {:ok, pid}
