@@ -39,7 +39,7 @@ Starts `Pulse.Monitor` and the HTTP API on port 4040.
 go run .
 ```
 
-The TUI polls the API every 2 seconds and shows monitored services. Press `q` or `ctrl+c` to quit.
+The TUI polls the API every 2 seconds and shows monitored services. Press **a** to add a service (name + URL), **q** or **ctrl+c** to quit.
 
 ## HTTP API
 
