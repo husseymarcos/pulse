@@ -10,6 +10,7 @@ Code Style and Structure
 - Prefer higher-order functions and recursion over imperative loops.
 - Use descriptive variable and function names (e.g., user_signed_in?, calculate_total).
 - Structure the app into clear layers: application entry, screens/views, state, and domain logic.
+- Add @moduledoc for important modules (public APIs, contexts, main app and screens); include a short description and an example where helpful.
 
 Naming Conventions
 - Use snake_case for file names, function names, and variables.
@@ -48,6 +49,7 @@ Conventions
 - Use Tasks for concurrent, isolated work (e.g., fetching data).
 
 Testing
+- Always write TDD tests: write tests first when possible, then implement to pass.
 - Write comprehensive tests using ExUnit.
 - Follow TDD practices.
 - Test domain and state logic in isolation; mock or stub TUI/IO where appropriate.

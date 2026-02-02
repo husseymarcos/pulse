@@ -1,19 +1,20 @@
 defmodule Pulse.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
-  @moduledoc false
+  @moduledoc """
+  OTP application for Pulse.
+
+  Starts the monitor dynamic supervisor and the `Pulse.Monitor` GenServer.
+  Services are added or removed at runtime via `Pulse.Monitor` (e.g. from the TUI).
+  """
 
   use Application
 
   @impl true
   def start(_type, _args) do
     children = [
-      # Starts a worker by calling: Pulse.Worker.start_link(arg)
-      # {Pulse.Worker, arg}
+      Pulse.Monitor.Supervisor,
+      Pulse.Monitor
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Pulse.Supervisor]
     Supervisor.start_link(children, opts)
   end

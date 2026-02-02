@@ -1,21 +1,21 @@
 # Pulse
 
-**TODO: Add description**
+Service monitoring application that checks HTTP endpoints and tracks latency. Add or remove services at runtime via `Pulse.Monitor`; each service gets a worker that performs GET requests and records response time.
 
-## Installation
+## Requirements
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `pulse` to your list of dependencies in `mix.exs`:
+- Elixir ~> 1.19
+- OTP 25+
 
-```elixir
-def deps do
-  [
-    {:pulse, "~> 0.1.0"}
-  ]
-end
+## Setup
+
+```bash
+git clone https://github.com/husseymarcos/pulse.git
+cd pulse
+mix deps.get
+mix compile
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/pulse>.
+## Usage
 
+Start the application (e.g. `iex -S mix`). The app starts `Pulse.Monitor`; add services and trigger checks:
