@@ -11,8 +11,7 @@ defmodule Pulse.MonitorTest do
       assert entry != nil
       assert entry.service.name == "Added"
       assert entry.service.url == "https://example.com/added"
-      assert is_binary(entry.service.id)
-      assert String.length(entry.service.id) == 36
+      assert is_integer(entry.service.id)
       assert Map.has_key?(entry, :latency_ms)
 
       Pulse.Monitor.remove_service(entry.service.id)
@@ -40,7 +39,7 @@ defmodule Pulse.MonitorTest do
     end
 
     test "removing by unknown id returns not_found" do
-      assert {:error, :not_found} == Pulse.Monitor.remove_service("00000000-0000-0000-0000-000000000000")
+      assert {:error, :not_found} == Pulse.Monitor.remove_service(0)
     end
 
     test "check with known id returns ok, with unknown id returns not_found" do
@@ -50,7 +49,7 @@ defmodule Pulse.MonitorTest do
       [entry] = Pulse.Monitor.list_services()
       id = entry.service.id
       assert :ok == Pulse.Monitor.check(id)
-      assert :not_found == Pulse.Monitor.check("00000000-0000-0000-0000-000000000000")
+      assert :not_found == Pulse.Monitor.check(0)
       Pulse.Monitor.remove_service(id)
     end
   end

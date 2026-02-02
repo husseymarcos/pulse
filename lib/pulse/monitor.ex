@@ -49,18 +49,22 @@ defmodule Pulse.Monitor do
   end
 
   @impl true
-  def init(_opts), do: {:ok, %{workers: %{}}}
+  def init(_opts), do: {:ok, %{workers: %{}, next_id: 1}}
 
   @impl true
-  def handle_call({:add_service, service}, _from, %{workers: workers} = state) do
+  def handle_call({:add_service, service}, _from, %{workers: workers, next_id: id} = state) do
     if url_taken?(workers, service.url) do
       {:reply, {:error, :already_exists}, state}
     else
-      id = UUID.uuid4()
       service_with_id = %{service | id: id}
       case start_worker(service_with_id) do
         {:ok, pid} ->
-          {:reply, :ok, %{state | workers: Map.put(workers, id, {service_with_id, pid})}}
+          new_state = %{
+            state
+            | workers: Map.put(workers, id, {service_with_id, pid}),
+              next_id: id + 1
+          }
+          {:reply, :ok, new_state}
 
         {:error, reason} ->
           {:reply, {:error, reason}, state}
