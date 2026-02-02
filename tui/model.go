@@ -49,17 +49,16 @@ func New(apiURL string) tea.Model {
 }
 
 func newModel(apiURL string) model {
-	ti := textinput.New()
-	ti.Placeholder = "e.g. API"
-	ti.Width = 40
-	ti.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
-	ti.TextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("15"))
-
-	urlTi := textinput.New()
-	urlTi.Placeholder = "https://example.com/health"
-	urlTi.Width = 40
-	urlTi.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
-	urlTi.TextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("15"))
+	inputStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
+	textStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("15"))
+	newInput := func(placeholder string) textinput.Model {
+		ti := textinput.New()
+		ti.Placeholder = placeholder
+		ti.Width = 40
+		ti.PromptStyle = inputStyle
+		ti.TextStyle = textStyle
+		return ti
+	}
 
 	return model{
 		apiURL:    apiURL,
@@ -67,8 +66,8 @@ func newModel(apiURL string) model {
 		status:    "Connecting…",
 		entries:   nil,
 		adding:    false,
-		nameInput: ti,
-		urlInput:  urlTi,
+		nameInput: newInput("e.g. API"),
+		urlInput:  newInput("https://example.com/health"),
 		focus:     0,
 	}
 }
@@ -93,28 +92,13 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "esc":
-			m.adding = false
-			m.nameInput.Reset()
-			m.urlInput.Reset()
-			m.nameInput.Blur()
-			m.urlInput.Blur()
-			m.focus = 0
-			return m, nil
+			return m.resetForm(), nil
 		case "enter":
 			if m.focus == 0 {
-				m.focus = 1
-				m.nameInput.Blur()
-				m.urlInput.Focus()
-				return m, textinput.Blink
+				return m.focusURL(), textinput.Blink
 			}
-			name := m.nameInput.Value()
-			url := m.urlInput.Value()
-			m.adding = false
-			m.nameInput.Reset()
-			m.urlInput.Reset()
-			m.nameInput.Blur()
-			m.urlInput.Blur()
-			m.focus = 0
+			name, url := m.nameInput.Value(), m.urlInput.Value()
+			m = m.resetForm()
 			if name == "" || url == "" {
 				m.status = "Name and URL required"
 				return m, nil
@@ -122,10 +106,7 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, addService(m.apiURL, name, url)
 		case "tab":
 			if m.focus == 0 {
-				m.focus = 1
-				m.nameInput.Blur()
-				m.urlInput.Focus()
-				return m, textinput.Blink
+				return m.focusURL(), textinput.Blink
 			}
 			return m, nil
 		}
@@ -141,6 +122,23 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m model) resetForm() model {
+	m.adding = false
+	m.nameInput.Reset()
+	m.urlInput.Reset()
+	m.nameInput.Blur()
+	m.urlInput.Blur()
+	m.focus = 0
+	return m
+}
+
+func (m model) focusURL() model {
+	m.focus = 1
+	m.nameInput.Blur()
+	m.urlInput.Focus()
+	return m
+}
+
 func (m model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -152,9 +150,9 @@ func (m model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Suspend
 		case "a":
 			m.adding = true
+			m.focus = 0
 			m.nameInput.Focus()
 			m.urlInput.Blur()
-			m.focus = 0
 			return m, textinput.Blink
 		}
 	case tea.WindowSizeMsg:
@@ -169,7 +167,11 @@ func (m model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.status = fmt.Sprintf("%d service(s)", len(msg.entries))
 		}
-		return m, tea.Tick(2*time.Second, func(time.Time) tea.Msg { return tickMsg{} })
+		interval := 2 * time.Second
+		if msg.err != nil {
+			interval = 5 * time.Second
+		}
+		return m, tea.Tick(interval, func(time.Time) tea.Msg { return tickMsg{} })
 	case addServiceDoneMsg:
 		if msg.err != nil {
 			m.status = "Add failed: " + msg.err.Error()

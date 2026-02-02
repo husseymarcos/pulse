@@ -18,6 +18,20 @@ type serviceEntryRaw struct {
 	Status    string          `json:"status"`
 }
 
+func rawToEntry(r serviceEntryRaw) serviceEntry {
+	status := "error"
+	if r.Status == "ok" {
+		status = "ok"
+	}
+	return serviceEntry{
+		ID:        r.ID,
+		Name:      r.Name,
+		URL:       r.URL,
+		LatencyMs: parseLatencyMs(r.LatencyMs),
+		Status:    status,
+	}
+}
+
 func parseLatencyMs(raw json.RawMessage) *int {
 	if len(raw) == 0 || string(raw) == "null" {
 		return nil
@@ -51,18 +65,8 @@ func fetchServices(apiURL string) tea.Cmd {
 			return servicesMsg{err: err}
 		}
 		entries := make([]serviceEntry, len(raw))
-		for i, r := range raw {
-			status := r.Status
-			if status != "ok" {
-				status = "error"
-			}
-			entries[i] = serviceEntry{
-				ID:        r.ID,
-				Name:      r.Name,
-				URL:       r.URL,
-				LatencyMs: parseLatencyMs(r.LatencyMs),
-				Status:    status,
-			}
+		for i := range raw {
+			entries[i] = rawToEntry(raw[i])
 		}
 		return servicesMsg{entries: entries}
 	}
