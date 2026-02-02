@@ -6,6 +6,12 @@ defmodule Pulse.Monitor.Response do
   require Logger
   require Mint.HTTP
 
+  @spec apply(
+          Pulse.Monitor.Worker.State.t(),
+          [Mint.Types.response()],
+          reference(),
+          integer()
+        ) :: Pulse.Monitor.Worker.State.t()
   def apply(state, responses, request_ref, start_time) do
     if done?(responses, request_ref) do
       latency_ms = System.monotonic_time(:millisecond) - start_time
@@ -16,13 +22,7 @@ defmodule Pulse.Monitor.Response do
 
       _ = Mint.HTTP.close(state.conn)
 
-      %{
-        state
-        | conn: nil,
-          request_ref: nil,
-          start_time: nil,
-          latency_ms: latency_ms
-      }
+      %{state | conn: nil, request_ref: nil, start_time: nil, latency_ms: latency_ms}
     else
       state
     end

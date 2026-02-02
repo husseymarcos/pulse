@@ -10,6 +10,8 @@ defmodule Pulse.Monitor.Worker do
 
   require Mint.HTTP
 
+  alias Pulse.Monitor.Worker.State, as: State
+
   def start_link(opts) do
     service = Keyword.fetch!(opts, :service)
     name = Keyword.get(opts, :name, __MODULE__)
@@ -26,7 +28,7 @@ defmodule Pulse.Monitor.Worker do
 
   @impl true
   def init(service) do
-    state = %{
+    state = %State{
       service: service,
       conn: nil,
       request_ref: nil,
@@ -38,7 +40,7 @@ defmodule Pulse.Monitor.Worker do
   end
 
   @impl true
-  def handle_cast(:check, %{service: service} = state) do
+  def handle_cast(:check, %State{service: service} = state) do
     case Pulse.Monitor.HTTP.connect_get(service.url) do
       {:ok, conn, request_ref, start_time} ->
         {:noreply, %{state | conn: conn, request_ref: request_ref, start_time: start_time}}
@@ -49,14 +51,14 @@ defmodule Pulse.Monitor.Worker do
   end
 
   @impl true
-  def handle_call(:get_latency, _from, %{latency_ms: latency_ms} = state) do
+  def handle_call(:get_latency, _from, %State{latency_ms: latency_ms} = state) do
     {:reply, latency_ms, state}
   end
 
   @impl true
   def handle_info(
         message,
-        %{conn: conn, request_ref: request_ref, start_time: start_time} = state
+        %State{conn: conn, request_ref: request_ref, start_time: start_time} = state
       )
       when not is_nil(conn) and Mint.HTTP.is_connection_message(conn, message) do
     case Mint.HTTP.stream(conn, message) do

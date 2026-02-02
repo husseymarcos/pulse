@@ -17,6 +17,9 @@ defmodule Pulse.Monitor do
 
   use GenServer
 
+  alias Pulse.Monitor.State, as: State
+  alias Pulse.Monitor.Entry, as: Entry
+
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
@@ -49,10 +52,10 @@ defmodule Pulse.Monitor do
   end
 
   @impl true
-  def init(_opts), do: {:ok, %{workers: %{}, next_id: 1}}
+  def init(_opts), do: {:ok, %State{workers: %{}, next_id: 1}}
 
   @impl true
-  def handle_call({:add_service, service}, _from, %{workers: workers, next_id: id} = state) do
+  def handle_call({:add_service, service}, _from, %State{workers: workers, next_id: id} = state) do
     if url_taken?(workers, service.url) do
       {:reply, {:error, :already_exists}, state}
     else
@@ -73,7 +76,7 @@ defmodule Pulse.Monitor do
   end
 
   @impl true
-  def handle_call({:remove_service, id}, _from, %{workers: workers} = state) do
+  def handle_call({:remove_service, id}, _from, %State{workers: workers} = state) do
     case Map.pop(workers, id) do
       {nil, _} ->
         {:reply, {:error, :not_found}, state}
@@ -85,17 +88,21 @@ defmodule Pulse.Monitor do
   end
 
   @impl true
-  def handle_call(:list_services, _from, %{workers: workers} = state) do
+  def handle_call(:list_services, _from, %State{workers: workers} = state) do
     entries =
       Enum.map(workers, fn {_id, {service, pid}} ->
-        %{service: service, pid: pid, latency_ms: Pulse.Monitor.Worker.get_latency(pid)}
+        %Entry{
+          service: service,
+          pid: pid,
+          latency_ms: Pulse.Monitor.Worker.get_latency(pid)
+        }
       end)
 
     {:reply, entries, state}
   end
 
   @impl true
-  def handle_call({:get_pid, id}, _from, %{workers: workers} = state) do
+  def handle_call({:get_pid, id}, _from, %State{workers: workers} = state) do
     pid = workers |> Map.get(id) |> pid_from_entry()
     {:reply, pid, state}
   end
