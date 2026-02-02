@@ -7,7 +7,17 @@ defmodule Pulse.MixProject do
       version: "0.1.0",
       elixir: "~> 1.19",
       start_permanent: Mix.env() == :prod,
+      releases: releases(),
       deps: deps()
+    ]
+  end
+
+  defp releases do
+    [
+      pulse: [
+        include_executables_for: [:unix],
+        applications: [pulse: :permanent]
+      ]
     ]
   end
 
