@@ -5,8 +5,8 @@ Service monitoring application that checks HTTP endpoints and tracks latency. Ad
 ## Install with Homebrew
 
 ```bash
-brew tap husseymarcos/pulse
-brew install pulse
+brew tap husseymarcos/pulse https://github.com/husseymarcos/pulse
+brew install pulse 
 pulse
 ```
 
