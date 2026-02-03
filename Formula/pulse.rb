@@ -2,9 +2,7 @@ class Pulse < Formula
   desc "Service monitoring: HTTP health checks and a TUI to add and view services"
   homepage "https://github.com/husseymarcos/pulse"
   url "https://github.com/husseymarcos/pulse/archive/refs/tags/v0.1.0.tar.gz"
-  # After tagging a release (e.g. v0.1.0), get the sha with:
-  #   curl -sL https://github.com/husseymarcos/pulse/archive/refs/tags/v0.1.0.tar.gz | shasum -a 256
-  sha256 ""
+  sha256 "5f5dc5939d232f994898a00e278ce3ad6eca488f4f9033253fdf048618f32146"
   license "MIT"
   head "https://github.com/husseymarcos/pulse.git", branch: "main"
 
