@@ -6,6 +6,7 @@ class Pulse < Formula
   license "MIT"
   head "https://github.com/husseymarcos/pulse.git", branch: "main"
 
+  depends_on "erlang" => :build
   depends_on "elixir" => :build
   depends_on "go" => :build
 
