@@ -9,8 +9,8 @@ defmodule Pulse.Service do
 
       service = %Pulse.Service{name: "API", url: "https://api.example.com/health"}
       :ok = Pulse.Monitor.add_service(service)
-      [entry] = Pulse.Monitor.list_services()
-      entry.service.id
+      [service] = Pulse.Monitor.list_services()
+      service.id
       #=> 1
 
   """
@@ -22,5 +22,7 @@ defmodule Pulse.Service do
     field :id, integer() | nil, default: nil
     field :name, String.t(), enforce: true
     field :url, String.t(), enforce: true
+    field :latency_ms, integer() | nil, default: nil
+    field :status, :ok | :error, default: :ok
   end
 end

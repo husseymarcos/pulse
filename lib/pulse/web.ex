@@ -6,6 +6,7 @@ defmodule Pulse.Web do
   GET /services — list monitored services (JSON: id, name, url, latency_ms).
   POST /services — add a service (JSON body: name, url). Returns 201 or error.
   """
+require Logger
 
   use Plug.Router
 
@@ -14,7 +15,6 @@ defmodule Pulse.Web do
   plug(:dispatch)
 
   get "/health" do
-    require Logger
     Logger.info("GET /health")
     conn
     |> put_resp_content_type("application/json")
@@ -22,19 +22,10 @@ defmodule Pulse.Web do
   end
 
   get "/services" do
-    entries = Pulse.Monitor.list_services()
+    services = Pulse.Monitor.list_services()
+    Logger.info("GET /services - returning #{length(services)} service(s)")
 
-    body =
-      Enum.map(entries, fn %Pulse.Monitor.Entry{service: s, latency_ms: latency_ms, status: status} ->
-        %{
-          id: s.id,
-          name: s.name,
-          url: s.url,
-          latency_ms: latency_ms,
-          status: (status == :ok && "ok") || "error"
-        }
-      end)
-      |> Jason.encode!()
+    body = Jason.encode!(services)
 
     conn
     |> put_resp_content_type("application/json")
@@ -42,20 +33,24 @@ defmodule Pulse.Web do
   end
 
   post "/services" do
+    Logger.info("POST /services")
+
     case conn.body_params do
       %{"name" => name, "url" => url} when is_binary(name) and is_binary(url) ->
         name = String.trim(name)
         url = String.trim(url)
 
         if name == "" or url == "" do
+          Logger.warning("POST /services - empty name or url")
           conn
           |> put_resp_content_type("application/json")
           |> send_resp(400, Jason.encode!(%{error: "name and url are required"}))
         else
           case Pulse.Monitor.add_service(%Pulse.Service{name: name, url: url}) do
             :ok ->
-              entries = Pulse.Monitor.list_services()
-              created = Enum.find(entries, fn %Pulse.Monitor.Entry{service: s} -> s.url == url end)
+              Logger.info("POST /services - added service: #{name} (#{url})")
+              services = Pulse.Monitor.list_services()
+              created = Enum.find(services, fn %Pulse.Service{} = s -> s.url == url end)
 
               if created do
                 Pulse.Monitor.check(created.service.id)
@@ -63,14 +58,8 @@ defmodule Pulse.Web do
 
               body =
                 case created do
-                  %Pulse.Monitor.Entry{service: s, latency_ms: latency_ms, status: status} ->
-                    Jason.encode!(%{
-                      id: s.id,
-                      name: s.name,
-                      url: s.url,
-                      latency_ms: latency_ms,
-                      status: (status == :ok && "ok") || "error"
-                    })
+                  %Pulse.Service{} = service ->
+                    Jason.encode!(service)
 
                   nil ->
                     Jason.encode!(%{status: "created"})
@@ -81,11 +70,13 @@ defmodule Pulse.Web do
               |> send_resp(201, body)
 
             {:error, :already_exists} ->
+              Logger.warning("POST /services - service already exists: #{url}")
               conn
               |> put_resp_content_type("application/json")
               |> send_resp(409, Jason.encode!(%{error: "service with this URL already exists"}))
 
             {:error, _reason} ->
+              Logger.error("POST /services - failed to add service: #{name} (#{url})")
               conn
               |> put_resp_content_type("application/json")
               |> send_resp(500, Jason.encode!(%{error: "failed to add service"}))
@@ -93,6 +84,7 @@ defmodule Pulse.Web do
         end
 
       _ ->
+        Logger.warning("POST /services - invalid body params")
         conn
         |> put_resp_content_type("application/json")
         |> send_resp(400, Jason.encode!(%{error: "body must include name and url (strings)"}))
@@ -100,6 +92,7 @@ defmodule Pulse.Web do
   end
 
   match _ do
+    Logger.warning("404 Not Found: #{conn.request_path}")
     send_resp(conn, 404, "Not Found")
   end
 end

@@ -9,16 +9,15 @@ defmodule Pulse.Monitor do
 
       service = %Pulse.Service{name: "API", url: "https://api.example.com/health"}
       :ok = Pulse.Monitor.add_service(service)
-      [entry] = Pulse.Monitor.list_services()
-      Pulse.Monitor.check(entry.service.id)
-      Pulse.Monitor.remove_service(entry.service.id)
+      [service] = Pulse.Monitor.list_services()
+      Pulse.Monitor.check(service.id)
+      Pulse.Monitor.remove_service(service.id)
 
   """
 
   use GenServer
 
   alias Pulse.Monitor.State, as: State
-  alias Pulse.Monitor.Entry, as: Entry
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -89,17 +88,15 @@ defmodule Pulse.Monitor do
 
   @impl true
   def handle_call(:list_services, _from, %State{workers: workers} = state) do
-    entries =
+    services =
       Enum.map(workers, fn {_id, {service, pid}} ->
-        %Entry{
-          service: service,
-          pid: pid,
-          latency_ms: Pulse.Monitor.Worker.get_latency(pid),
-          status: Pulse.Monitor.Worker.get_status(pid)
+        %{service
+          | latency_ms: Pulse.Monitor.Worker.get_latency(pid),
+            status: Pulse.Monitor.Worker.get_status(pid)
         }
       end)
 
-    {:reply, entries, state}
+    {:reply, services, state}
   end
 
   @impl true
