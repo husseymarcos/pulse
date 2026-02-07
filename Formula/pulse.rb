@@ -18,7 +18,8 @@ class Pulse < Formula
     system "mix", "local.hex", "--force"
     system "mix", "local.rebar", "--force"
     system "mix", "deps.get"
-    system "MIX_ENV=prod", "mix", "release", "pulse", "--overwrite", "--path", libexec
+    ENV["MIX_ENV"] = "prod"
+    system "mix", "release", "pulse", "--overwrite", "--path", libexec
 
     ldflags = %W[
       -s -w
