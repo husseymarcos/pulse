@@ -17,12 +17,13 @@ defmodule Pulse.Service do
 
   use TypedStruct
 
+  @derive Jason.Encoder
   typedstruct do
     @typedoc "A monitored service. `id` is set when added via Pulse.Monitor.add_service/1 (incrementing integer)."
     field :id, integer() | nil, default: nil
     field :name, String.t(), enforce: true
     field :url, String.t(), enforce: true
     field :latency_ms, integer() | nil, default: nil
-    field :status, :ok | :error, default: :ok
+    field :status, String.t(), default: "ok"
   end
 end

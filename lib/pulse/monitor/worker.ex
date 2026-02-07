@@ -1,106 +1,59 @@
 defmodule Pulse.Monitor.Worker do
-  @moduledoc """
-  GenServer that monitors a single service: performs GET requests and tracks latency.
-
-  Started by `Pulse.Monitor` for each added service. Use `check/1` to trigger a GET
-  and `get_latency/1` to read the last measured latency (in milliseconds).
-  """
+  @moduledoc "GenServer per service: GET health checks, tracks latency. Started by Pulse.Monitor."
 
   use GenServer
-
   require Mint.HTTP
 
-  alias Pulse.Monitor.Worker.State, as: State
+  @type state :: %{
+          service: Pulse.Service.t(),
+          conn: Mint.HTTP.t() | nil,
+          request_ref: reference() | nil,
+          start_time: integer() | nil
+        }
 
   def start_link(opts) do
     service = Keyword.fetch!(opts, :service)
-    name = Keyword.get(opts, :name, __MODULE__)
-    GenServer.start_link(__MODULE__, service, name: name)
+    GenServer.start_link(__MODULE__, service, name: Keyword.get(opts, :name, __MODULE__))
   end
 
-  def check(pid \\ __MODULE__) do
-    GenServer.cast(pid, :check)
-  end
-
-  def get_latency(pid \\ __MODULE__) do
-    GenServer.call(pid, :get_latency)
-  end
-
-  def get_status(pid \\ __MODULE__) do
-    GenServer.call(pid, :get_status)
-  end
+  def check(pid \\ __MODULE__), do: GenServer.cast(pid, :check)
+  def get_latency(pid \\ __MODULE__), do: GenServer.call(pid, :get_latency)
+  def get_status(pid \\ __MODULE__), do: GenServer.call(pid, :get_status)
 
   @impl true
   def init(service) do
-    state = %State{
-      service: service,
-      conn: nil,
-      request_ref: nil,
-      start_time: nil,
-      latency_ms: nil
-    }
-
     Process.send_after(self(), :run_check, 500)
-
-    {:ok, state}
+    {:ok, %{service: service, conn: nil, request_ref: nil, start_time: nil}}
   end
 
   @impl true
-  def handle_cast(:check, %State{service: service, conn: conn} = state) do
-    if conn != nil do
-      {:noreply, state}
-    else
-      case Pulse.Monitor.HTTP.connect_get(service.url) do
-        {:ok, conn, request_ref, start_time} ->
-          {:noreply, %{state | conn: conn, request_ref: request_ref, start_time: start_time}}
-
-        {:error, _} ->
-          {:noreply, state}
-      end
-    end
-  end
+  def handle_cast(:check, state), do: {:noreply, maybe_start_check(state)}
 
   @impl true
-  def handle_call(:get_latency, _from, %State{latency_ms: latency_ms} = state) do
-    {:reply, latency_ms, state}
-  end
+  def handle_call(:get_latency, _from, state), do: {:reply, state.service.latency_ms, state}
+  def handle_call(:get_status, _from, state), do: {:reply, state.service.status, state}
 
   @impl true
-  def handle_call(:get_status, _from, %State{last_status: last_status} = state) do
-    {:reply, last_status, state}
-  end
-
-  @impl true
-  def handle_info(
-        message,
-        %State{conn: conn, request_ref: request_ref, start_time: start_time} = state
-      )
-      when not is_nil(conn) and Mint.HTTP.is_connection_message(conn, message) do
-    case Mint.HTTP.stream(conn, message) do
+  @spec handle_info(term(), state()) :: {:noreply, state()}
+  def handle_info(msg, state) when not is_nil(state.conn) and Mint.HTTP.is_connection_message(state.conn, msg) do
+    case Mint.HTTP.stream(state.conn, msg) do
       {:ok, conn, responses} ->
-        state = %{state | conn: conn}
-        state = Pulse.Monitor.Response.apply(state, responses, request_ref, start_time)
+        state = Pulse.Monitor.Response.apply(%{state | conn: conn}, responses, state.request_ref, state.start_time)
         {:noreply, state}
-
-      {:error, conn, _reason, _responses} ->
+      {:error, conn, _reason, _} ->
         _ = Mint.HTTP.close(conn)
-        {:noreply, %{state | conn: nil, request_ref: nil, start_time: nil, last_status: :error}}
+        {:noreply, %{state | conn: nil, request_ref: nil, start_time: nil, service: %{state.service | status: "error"}}}
     end
   end
 
-  def handle_info(:run_check, %State{service: service, conn: conn} = state) do
-    if conn != nil do
-      {:noreply, state}
-    else
-      case Pulse.Monitor.HTTP.connect_get(service.url) do
-        {:ok, conn, request_ref, start_time} ->
-          {:noreply, %{state | conn: conn, request_ref: request_ref, start_time: start_time}}
+  def handle_info(:run_check, state), do: {:noreply, maybe_start_check(state)}
+  def handle_info(_, state), do: {:noreply, state}
 
-        {:error, _} ->
-          {:noreply, state}
-      end
+  defp maybe_start_check(%{conn: nil, service: service} = state) do
+    case Pulse.Monitor.HTTP.connect_get(service.url) do
+      {:ok, conn, request_ref, start_time} -> %{state | conn: conn, request_ref: request_ref, start_time: start_time}
+      {:error, _} -> state
     end
   end
-
-  def handle_info(_message, state), do: {:noreply, state}
+  defp maybe_start_check(state), do: state
 end

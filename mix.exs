@@ -8,7 +8,16 @@ defmodule Pulse.MixProject do
       elixir: "~> 1.19",
       start_permanent: Mix.env() == :prod,
       releases: releases(),
-      deps: deps()
+      deps: deps(),
+      dialyzer: dialyzer()
+    ]
+  end
+
+  defp dialyzer do
+    [
+      plt_add_apps: [:mix],
+      plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
+      flags: [:missing_return, :extra_return, :unmatched_returns, :error_handling, :underspecs]
     ]
   end
 
@@ -34,6 +43,7 @@ defmodule Pulse.MixProject do
     [
       {:bandit, "~> 1.0"},
       {:castore, "~> 1.0"},
+      {:dialyxir, "~> 1.4", only: [:dev], runtime: false},
       {:jason, "~> 1.4"},
       {:mint, "~> 1.7"},
       {:plug, "~> 1.19"},

@@ -81,7 +81,7 @@ defmodule Pulse.Monitor do
         {:reply, {:error, :not_found}, state}
 
       {{_service, pid}, new_workers} ->
-        DynamicSupervisor.terminate_child(Pulse.Monitor.Supervisor, pid)
+        _ = DynamicSupervisor.terminate_child(Pulse.Monitor.Supervisor, pid)
         {:reply, :ok, %{state | workers: new_workers}}
     end
   end
@@ -101,12 +101,9 @@ defmodule Pulse.Monitor do
 
   @impl true
   def handle_call({:get_pid, id}, _from, %State{workers: workers} = state) do
-    pid = workers |> Map.get(id) |> pid_from_entry()
+    pid = workers |> Map.get(id) |> then(fn {_, p} -> p; nil -> nil end)
     {:reply, pid, state}
   end
-
-  defp pid_from_entry({_service, p}), do: p
-  defp pid_from_entry(nil), do: nil
 
   defp url_taken?(workers, url) do
     Enum.any?(workers, fn {_id, {service, _pid}} -> service.url == url end)
@@ -114,7 +111,6 @@ defmodule Pulse.Monitor do
 
   defp start_worker(service) do
     spec = {Pulse.Monitor.Worker, [service: service, name: nil]}
-
     case DynamicSupervisor.start_child(Pulse.Monitor.Supervisor, spec) do
       {:ok, pid} -> {:ok, pid}
       {:ok, pid, _} -> {:ok, pid}
