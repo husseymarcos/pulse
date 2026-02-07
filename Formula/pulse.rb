@@ -11,6 +11,9 @@ class Pulse < Formula
   depends_on "go" => :build
 
   def install
+    # Install Hex and Rebar in build directory (sandbox can't write to ~/.mix)
+    ENV["MIX_HOME"] = "#{buildpath}/.mix"
+    ENV["PATH"] = "#{buildpath}/.mix/bin:#{ENV["PATH"]}"
     system "mix", "local.hex", "--force"
     system "mix", "local.rebar", "--force"
     system "mix", "deps.get"
