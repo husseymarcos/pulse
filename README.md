@@ -1,6 +1,6 @@
-# Pulse
+# Pulse — Service monitoring with TUI
 
-Service monitoring application that checks HTTP endpoints and tracks latency. Add or remove services at runtime via `Pulse.Monitor`; each service gets a worker that performs GET requests and records response time.
+Monitors HTTP endpoints and tracks latency. Add or remove services from the TUI or via the API; each service has a worker that runs GET checks and records response time.
 
 ## Install with Homebrew
 
