@@ -21,12 +21,8 @@ class Pulse < Formula
     ENV["MIX_ENV"] = "prod"
     system "mix", "release", "pulse", "--overwrite", "--path", libexec
 
-    ldflags = %W[
-      -s -w
-      -X main.releaseDir=#{libexec}
-      -X main.version=#{version}
-    ]
-    system "go", "build", *ldflags, "-o", bin/"pulse", "."
+    ldflags = %W[-s -w -X main.releaseDir=#{libexec} -X main.version=#{version}].join(" ")
+    system "go", "build", "-ldflags=#{ldflags}", "-o", bin/"pulse", "."
   end
 
   test do
