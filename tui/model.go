@@ -19,6 +19,7 @@ type serviceEntry struct {
 
 type model struct {
 	apiURL    string
+	clientID  string
 	title     string
 	status    string
 	entries   []serviceEntry
@@ -33,22 +34,24 @@ type model struct {
 }
 
 type servicesMsg struct {
-	entries []serviceEntry
-	err     error
+	entries  []serviceEntry
+	err      error
+	clientID string // from X-Client-ID response header; persist if set
 }
 
 type tickMsg struct{}
 
 type addServiceDoneMsg struct {
-	err error
+	err      error
+	clientID string
 }
 
-// New returns a tea.Model for the Pulse TUI.
-func New(apiURL string) tea.Model {
-	return newModel(apiURL)
+// New returns a tea.Model for the Pulse TUI. clientID is the anonymous client ID (persisted locally, no login).
+func New(apiURL, clientID string) tea.Model {
+	return newModel(apiURL, clientID)
 }
 
-func newModel(apiURL string) model {
+func newModel(apiURL, clientID string) model {
 	inputStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
 	textStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("15"))
 	newInput := func(placeholder string) textinput.Model {
@@ -62,6 +65,7 @@ func newModel(apiURL string) model {
 
 	return model{
 		apiURL:    apiURL,
+		clientID:  clientID,
 		title:     "Pulse TUI",
 		status:    "Connecting…",
 		entries:   nil,
@@ -73,7 +77,7 @@ func newModel(apiURL string) model {
 }
 
 func (m model) Init() tea.Cmd {
-	return fetchServices(m.apiURL)
+	return fetchServices(m.apiURL, m.clientID)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -103,7 +107,7 @@ func (m model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.status = "Name and URL required"
 				return m, nil
 			}
-			return m, addService(m.apiURL, name, url)
+			return m, addService(m.apiURL, m.clientID, name, url)
 		case "tab":
 			if m.focus == 0 {
 				return m.focusURL(), textinput.Blink
@@ -160,6 +164,10 @@ func (m model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		return m, nil
 	case servicesMsg:
+		if msg.clientID != "" {
+			_ = WriteClientID(msg.clientID)
+			m.clientID = msg.clientID
+		}
 		m.entries = msg.entries
 		m.err = msg.err
 		if msg.err != nil {
@@ -173,14 +181,18 @@ func (m model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, tea.Tick(interval, func(time.Time) tea.Msg { return tickMsg{} })
 	case addServiceDoneMsg:
+		if msg.clientID != "" {
+			_ = WriteClientID(msg.clientID)
+			m.clientID = msg.clientID
+		}
 		if msg.err != nil {
 			m.status = "Add failed: " + msg.err.Error()
 		} else {
 			m.status = "Service added. Refreshing…"
 		}
-		return m, fetchServices(m.apiURL)
+		return m, fetchServices(m.apiURL, m.clientID)
 	case tickMsg:
-		return m, fetchServices(m.apiURL)
+		return m, fetchServices(m.apiURL, m.clientID)
 	}
 	return m, nil
 }

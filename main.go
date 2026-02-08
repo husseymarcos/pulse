@@ -67,7 +67,8 @@ func main() {
 		defer f.Close()
 	}
 
-	p := tea.NewProgram(tui.New(apiURL))
+	clientID := tui.ReadClientID()
+	p := tea.NewProgram(tui.New(apiURL, clientID))
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
 	}

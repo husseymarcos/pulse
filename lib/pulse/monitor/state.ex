@@ -3,7 +3,6 @@ defmodule Pulse.Monitor.State do
   use TypedStruct
 
   typedstruct do
-    field :workers, %{optional(integer()) => {Pulse.Service.t(), pid()}}, default: %{}
-    field :next_id, integer(), default: 1
+    field :clients, %{optional(String.t()) => %{optional(integer()) => {Pulse.Service.t(), pid()}}}, default: %{}
   end
 end

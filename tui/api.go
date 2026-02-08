@@ -48,41 +48,52 @@ func parseLatencyMs(raw json.RawMessage) *int {
 	return nil
 }
 
-func fetchServices(apiURL string) tea.Cmd {
+func fetchServices(apiURL, clientID string) tea.Cmd {
 	return func() tea.Msg {
-		resp, err := http.Get(apiURL + "/services")
+		req, _ := http.NewRequest(http.MethodGet, apiURL+"/services", nil)
+		if clientID != "" {
+			req.Header.Set("X-Client-ID", clientID)
+		}
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return servicesMsg{err: err}
 		}
 		defer resp.Body.Close()
 
+		respClientID := resp.Header.Get("X-Client-ID")
 		if resp.StatusCode != http.StatusOK {
-			return servicesMsg{err: fmt.Errorf("API returned %d", resp.StatusCode)}
+			return servicesMsg{err: fmt.Errorf("API returned %d", resp.StatusCode), clientID: respClientID}
 		}
 
 		var raw []serviceEntryRaw
 		if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
-			return servicesMsg{err: err}
+			return servicesMsg{err: err, clientID: respClientID}
 		}
 		entries := make([]serviceEntry, len(raw))
 		for i := range raw {
 			entries[i] = rawToEntry(raw[i])
 		}
-		return servicesMsg{entries: entries}
+		return servicesMsg{entries: entries, clientID: respClientID}
 	}
 }
 
-func addService(apiURL, name, url string) tea.Cmd {
+func addService(apiURL, clientID, name, url string) tea.Cmd {
 	return func() tea.Msg {
 		body, _ := json.Marshal(map[string]string{"name": name, "url": url})
-		resp, err := http.Post(apiURL+"/services", "application/json", bytes.NewReader(body))
+		req, _ := http.NewRequest(http.MethodPost, apiURL+"/services", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		if clientID != "" {
+			req.Header.Set("X-Client-ID", clientID)
+		}
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return addServiceDoneMsg{err: err}
 		}
 		defer resp.Body.Close()
+		respClientID := resp.Header.Get("X-Client-ID")
 		if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-			return addServiceDoneMsg{err: fmt.Errorf("API returned %d", resp.StatusCode)}
+			return addServiceDoneMsg{err: fmt.Errorf("API returned %d", resp.StatusCode), clientID: respClientID}
 		}
-		return addServiceDoneMsg{}
+		return addServiceDoneMsg{clientID: respClientID}
 	}
 }

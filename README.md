@@ -63,3 +63,39 @@ go run .
 ```
 
 The TUI polls the API every 2 seconds and shows monitored services. Press **a** to add a service (name + URL), **q** or **ctrl+c** to quit.
+
+## Deploying the server (no login)
+
+The API can run separately from the TUI. Services are stored in PostgreSQL and scoped by an anonymous **client ID** (no login): the TUI persists a UUID in `~/.config/pulse/client_id` and sends it in the `X-Client-ID` header. The server returns that header when it generates a new ID so the client can save it.
+
+### Database
+
+1. Create a Postgres database and set `DATABASE_URL`:
+   ```bash
+   export DATABASE_URL="ecto://USER:PASSWORD@HOST/DATABASE"
+   ```
+2. Run migrations:
+   ```bash
+   MIX_ENV=prod mix ecto.migrate
+   ```
+3. For local dev (default DB `pulse_dev`):
+   ```bash
+   mix ecto.create
+   mix ecto.migrate
+   ```
+
+### Run the server
+
+- **Dev:** `iex -S mix` or `mix run --no-halt` (API on port 4040; override with config `:pulse, :http_port`).
+- **Prod:** build a release (`MIX_ENV=prod mix release`) and start it; ensure `DATABASE_URL` is set in the environment.
+
+### Use the TUI against a remote server
+
+Set the API URL and run the TUI (do not use `-standalone` so it does not start a local server):
+
+```bash
+export PULSE_API_URL="https://your-pulse-server.example.com"
+pulse
+```
+
+The TUI will send `X-Client-ID` from `~/.config/pulse/client_id`; if missing, the server assigns one and returns it in the response, and the TUI saves it for next time.

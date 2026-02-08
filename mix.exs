@@ -44,9 +44,11 @@ defmodule Pulse.MixProject do
       {:bandit, "~> 1.0"},
       {:castore, "~> 1.0"},
       {:dialyxir, "~> 1.4", only: [:dev], runtime: false},
+      {:ecto_sql, "~> 3.12"},
       {:jason, "~> 1.4"},
       {:mint, "~> 1.7"},
       {:plug, "~> 1.19"},
+      {:postgrex, "~> 0.19"},
       {:statistex, "~> 1.1"},
       {:typedstruct, "~> 0.5"}
     ]

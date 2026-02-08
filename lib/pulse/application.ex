@@ -5,7 +5,12 @@ defmodule Pulse.Application do
   @impl true
   def start(_type, _args) do
     port = Application.get_env(:pulse, :http_port, 4040)
-    children = [Pulse.Monitor.Supervisor, Pulse.Monitor, {Bandit, plug: Pulse.Web, scheme: :http, port: port}]
+    children = [
+      Pulse.Repo,
+      Pulse.Monitor.Supervisor,
+      Pulse.Monitor,
+      {Bandit, plug: Pulse.Web, scheme: :http, port: port}
+    ]
     Supervisor.start_link(children, strategy: :one_for_one, name: Pulse.Supervisor)
   end
 end
